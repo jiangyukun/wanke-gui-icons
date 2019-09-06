@@ -1,9 +1,22 @@
-import { ThemeType } from '@ant-design/icons-svg/lib/types';
+import * as icons from '@ant-design/icons/lib/dist';
+import manifest from '@ant-design/icons/lib/manifest';
+import {
+  IconDefinition,
+  Manifest,
+  ThemeType
+} from '@ant-design/icons/lib/types';
 import { action, computed, observable } from 'mobx';
 import { observer } from 'mobx-react';
 import * as React from 'react';
+import { render } from 'react-dom';
 import styled from 'styled-components';
-import * as AntdIcons from '../src/icons';
+import AntdIcon from '../src';
+
+const antDesignIcons = icons as {
+  [key: string]: IconDefinition;
+};
+
+AntdIcon.add(...Object.keys(antDesignIcons).map((key) => antDesignIcons[key]));
 
 const Container = styled.div`
   display: flex;
@@ -27,33 +40,42 @@ const NameDescription = styled.p`
   white-space: nowrap;
 `;
 
-const allIcons: {
-  [key: string]: any;
-} = AntdIcons;
-
-const iconsList = Object.keys(allIcons)
-  .map(iconName => allIcons[iconName]);
-
 @observer
-export default class AllIconDemo extends React.Component<{}> {
+class AllIconDemo extends React.Component<{}> {
   @observable
-  currentTheme = 'Outlined';
+  names: Manifest = manifest;
+
+  @observable
+  currentTheme: ThemeType = 'outline';
 
   @computed
   get Icons() {
-    return iconsList
-      .filter((icon) => {
-        if (this.currentTheme !== 'Outlined') {
-          return icon.name.includes(this.currentTheme);
-        }
-        return ['Filled', 'TwoTone'].every(theme => !icon.name.includes(theme));
-      })
-      .map((Component) => (
-        <Card key={Component.name}>
-          <Component style={{ fontSize: '24px' }} />
-          <NameDescription>{Component.name}</NameDescription>
+    return this.names[this.currentTheme].map((name) => {
+      let computedName = name;
+      switch (this.currentTheme) {
+        case 'fill':
+          computedName += '-fill';
+          break;
+        case 'outline':
+          computedName += '-o';
+          break;
+        case 'twotone':
+          computedName += '-twotone';
+          break;
+        default:
+          throw new TypeError(`Unknown theme ${this.currentTheme}`);
+      }
+      return (
+        <Card key={name}>
+          <AntdIcon
+            style={{ fontSize: '24px' }}
+            key={computedName}
+            type={computedName}
+          />
+          <NameDescription>{computedName}</NameDescription>
         </Card>
-      ));
+      );
+    });
   }
 
   @action
@@ -72,9 +94,9 @@ export default class AllIconDemo extends React.Component<{}> {
             value={this.currentTheme}
             onChange={this.handleSelectChange}
           >
-            <option value="Filled">Filled</option>
-            <option value="Outlined">Outlined</option>
-            <option value="TwoTone">Two-Tone</option>
+            <option value={'fill'}>Filled</option>
+            <option value={'outline'}>Outlined</option>
+            <option value={'twotone'}>Two-Tone</option>
           </select>
         </div>
         <Container>{this.Icons}</Container>
@@ -82,3 +104,5 @@ export default class AllIconDemo extends React.Component<{}> {
     );
   }
 }
+
+render(<AllIconDemo />, document.getElementById('__react-content'));

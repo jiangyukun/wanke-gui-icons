@@ -1,130 +1,128 @@
-import React from 'react';
-import classNames from 'classnames';
+import { AbstractNode, IconDefinition } from '@ant-design/icons/lib/types';
+import * as React from 'react';
+import {
+  generate,
+  getSecondaryColor,
+  isIconDefinition,
+  log,
+  MiniMap,
+  withSuffix
+} from '../utils';
 
-import { svgBaseProps, warning, useInsertStyles } from '../utils';
-
-export interface IconBaseProps {
-  tabIndex?: number;
+export interface IconProps {
+  type: string | IconDefinition;
   className?: string;
-  title?: string;
-  onKeyUp?: React.KeyboardEventHandler<HTMLElement>;
-  onClick?: React.MouseEventHandler<HTMLElement>;
+  onClick?: React.MouseEventHandler<SVGSVGElement>;
   style?: React.CSSProperties;
-  role?: string;
-  spin?: boolean;
-  rotate?: number;
+  primaryColor?: string; // only for two-tone
+  secondaryColor?: string; // only for two-tone
+  focusable?: string;
 }
 
-export interface CustomIconComponentProps {
-  width: string | number;
-  height: string | number;
-  fill: string;
-  viewBox?: string;
-  className?: string;
-  style?: React.CSSProperties;
+export interface TwoToneColorPaletteSetter {
+  primaryColor: string;
+  secondaryColor?: string;
 }
 
-export interface IconComponentProps extends IconBaseProps {
-  viewBox?: string;
-  component?: React.ComponentType<CustomIconComponentProps>;
-  ariaLabel?: React.AriaAttributes['aria-label'];
+export interface TwoToneColorPalette extends TwoToneColorPaletteSetter {
+  secondaryColor: string;
 }
 
-const Icon: React.FC<IconComponentProps> = props => {
-  const {
-    // affect outter <i>...</i>
-    className,
+const twoToneColorPalette: TwoToneColorPalette = {
+  primaryColor: '#333',
+  secondaryColor: '#E6E6E6'
+};
 
-    // affect inner <svg>...</svg>
-    component: Component,
-    viewBox,
-    spin,
-    rotate,
+class Icon extends React.Component<IconProps> {
+  static displayName = 'IconReact';
+  static definitions = new MiniMap<IconDefinition>();
+  static add(...icons: IconDefinition[]) {
+    icons.forEach((icon) => {
+      this.definitions.set(withSuffix(icon.name, icon.theme), icon);
+    });
+  }
+  static clear() {
+    this.definitions.clear();
+  }
 
-    tabIndex,
-    onClick,
-
-    // children
-    children,
-    ...restProps
-  } = props;
-
-  warning(
-    Boolean(Component || children),
-    'Should have `component` prop or `children`.',
-  );
-
-  useInsertStyles();
-
-  const classString = classNames(
-    'anticon',
-    className,
-  );
-
-  const svgClassString = classNames({
-    'anticon-spin': !!spin,
-  });
-
-  let innerNode: React.ReactNode;
-  const svgStyle = rotate
-    ? {
-        msTransform: `rotate(${rotate}deg)`,
-        transform: `rotate(${rotate}deg)`,
+  static get(key?: string, colors: TwoToneColorPalette = twoToneColorPalette) {
+    if (key) {
+      let target = this.definitions.get(key);
+      if (target && typeof target.icon === 'function') {
+        target = {
+          ...target,
+          icon: target.icon(colors.primaryColor, colors.secondaryColor)
+        };
       }
-    : undefined;
-
-
-  const innerSvgProps: CustomIconComponentProps = {
-    ...svgBaseProps,
-    className: svgClassString,
-    style: svgStyle,
-    viewBox,
-  };
-
-  if (!viewBox) {
-    delete innerSvgProps.viewBox;
+      return target;
+    }
   }
 
-  // component > children
-  if (Component) {
-    innerNode = <Component {...innerSvgProps}>{children}</Component>;
+  static setTwoToneColors({
+    primaryColor,
+    secondaryColor
+  }: TwoToneColorPaletteSetter) {
+    twoToneColorPalette.primaryColor = primaryColor;
+    twoToneColorPalette.secondaryColor =
+      secondaryColor || getSecondaryColor(primaryColor);
   }
 
-  if (children) {
-    warning(
-      Boolean(viewBox) ||
-        (React.Children.count(children) === 1 &&
-          React.isValidElement(children) &&
-          React.Children.only(children).type === 'use'),
-      'Make sure that you provide correct `viewBox`' +
-      ' prop (default `0 0 1024 1024`) to the icon.',
-    );
-
-    innerNode = (
-      <svg {...innerSvgProps} viewBox={viewBox}>
-        {children}
-      </svg>
-    );
+  static getTwoToneColors(): TwoToneColorPalette {
+    return {
+      ...twoToneColorPalette
+    };
   }
 
-  let iconTabIndex = tabIndex;
-  if (iconTabIndex === undefined && onClick) {
-    iconTabIndex = -1;
-  }
+  render() {
+    const {
+      type,
+      className,
+      onClick,
+      style,
+      primaryColor,
+      secondaryColor,
+      ...rest
+    } = this.props;
 
-  return (
-    <span
-      role="img"
-      {...restProps}
-      tabIndex={iconTabIndex}
-      onClick={onClick}
-      className={classString}
-    >
-      {innerNode}
-    </span>
-  );
+    let target: IconDefinition | undefined;
+    let colors: TwoToneColorPalette = twoToneColorPalette;
+    if (primaryColor) {
+      colors = {
+        primaryColor,
+        secondaryColor: secondaryColor || getSecondaryColor(primaryColor)
+      };
+    }
+    if (isIconDefinition(type)) {
+      target = type;
+    } else if (typeof type === 'string') {
+      target = Icon.get(type, colors);
+      if (!target) {
+        // log(`Could not find icon: ${type}`);
+        return null;
+      }
+    }
+    if (!target) {
+      log(`type should be string or icon definiton, but got ${type}`);
+      return null;
+    }
+    if (target && typeof target.icon === 'function') {
+      target = {
+        ...target,
+        icon: target.icon(colors.primaryColor, colors.secondaryColor)
+      };
+    }
+    return generate(target.icon as AbstractNode, `svg-${target.name}`, {
+      className,
+      onClick,
+      style,
+      ['data-icon']: target.name,
+      width: '1em',
+      height: '1em',
+      fill: 'currentColor',
+      ['aria-hidden']: 'true',
+      ...rest
+    });
+  }
 }
-
-Icon.displayName = 'AntdIcon';
 
 export default Icon;
