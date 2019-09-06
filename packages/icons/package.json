@@ -27,7 +27,7 @@
     "clean:build": "rimraf .cache es lib",
     "start": "gatsby develop",
     "build:umd": "webpack --config umd.webpack.config.js -p",
-    "prepublish": "npm run lint && npm run test && npm run generate && npm run build"
+    "prepublish": ""
   },
   "devDependencies": {
     "@babel/cli": "^7.0.0",
@@ -109,5 +109,5 @@
       "<rootDir>/.cache/"
     ]
   },
-  "gitHead": "225d4d2189720ee3b7e4a4d7a6d80e076fa15cbc"
+  "gitHead": "25ade17a2fbb875f1499b16d5c99416e4184cfff"
 }
