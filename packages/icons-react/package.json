@@ -1,5 +1,5 @@
 {
-  "name": "@wanke-gui/icons",
+  "name": "wanke-gui-icons",
   "version": "1.0.4",
   "main": "./lib/index.js",
   "module": "./es/index.js",
@@ -53,5 +53,5 @@
     "insert-css": "^2.0.0",
     "rc-util": "^4.9.0"
   },
-  "gitHead": "3a1fca260feaa7d4671cbec6563ce9b56bf0c692"
+  "gitHead": "0dbacd52db586f0448ba232fe1abc94282885c8e"
 }
